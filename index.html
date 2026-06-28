@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Affiliate Studio</title>
+<style>
+:root{--bg:#0b0e14;--panel:#141925;--panel2:#1c2333;--line:#262f43;--text:#e7ecf5;--muted:#8a96ad;--brand:#ff2d55;--brand2:#25f4ee;--good:#16c784;--warn:#ffb020;--chip:#222b3d}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,'Noto Sans Thai',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;margin:4px 6px 22px}
+.logo .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;font-size:14px}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;color:var(--muted);padding:11px 12px;border-radius:10px;cursor:pointer;font-size:14px;text-align:left;margin-bottom:3px;font-family:inherit}
+.nav button:hover{background:var(--panel2);color:var(--text)}
+.nav button.active{background:linear-gradient(90deg,rgba(255,45,85,.18),transparent);color:var(--text);font-weight:600}
+.nav button .ic{width:20px;text-align:center}
+.side .tip{margin-top:20px;padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:12px;line-height:1.5}
+.main{padding:22px 26px;max-width:1180px}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:14px}
+.head h1{font-size:21px;margin:0}
+.head p{margin:3px 0 0;color:var(--muted);font-size:13px}
+.userbox{display:flex;align-items:center;gap:10px}
+.userbox img{width:34px;height:34px;border-radius:50%;background:var(--panel2)}
+.btn{background:var(--brand);color:#fff;border:0;padding:11px 16px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;font-family:inherit}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+.btn.sm{padding:7px 12px;font-size:12px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.page{display:none}.page.show{display:block}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card .k{color:var(--muted);font-size:12px}.card .v{font-size:26px;font-weight:800;margin-top:6px}.card .d{font-size:12px;margin-top:4px;color:var(--good)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+.panel h3{margin:0 0 14px;font-size:15px}
+.grid2{display:grid;grid-template-columns:1fr 340px;gap:18px}
+label.l{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px}
+input,textarea,select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit}
+textarea{resize:vertical;min-height:84px}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brand)}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--muted);cursor:pointer}
+.drop:hover{border-color:var(--brand);color:var(--text)}
+.drop.has{border-style:solid;border-color:var(--good);padding:12px}
+.preview{display:flex;align-items:center;gap:12px}
+.preview .thumb{width:64px;height:84px;border-radius:8px;background:#000;flex:0 0 auto;display:grid;place-items:center;font-size:24px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{background:var(--chip);border:1px solid var(--line);padding:6px 11px;border-radius:18px;font-size:12px;cursor:pointer}
+.chip.sel{border-color:var(--brand);background:rgba(255,45,85,.12)}
+.switch{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:6px}
+.tg{width:46px;height:26px;border-radius:20px;background:#333c52;position:relative;cursor:pointer;transition:.2s;flex:0 0 auto}
+.tg.on{background:var(--good)}.tg::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}.tg.on::after{left:23px}
+.row{display:flex;gap:10px;align-items:center}.mini{font-size:12px;color:var(--muted)}
+.selprod{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;gap:10px;align-items:center;margin-top:6px}
+.selprod .px{width:42px;height:42px;border-radius:8px;background:var(--panel2);display:grid;place-items:center;font-size:20px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px}
+th{color:var(--muted);font-weight:600;font-size:12px}
+.tag{display:inline-block;padding:3px 9px;border-radius:14px;font-size:11px;font-weight:600}
+.score{font-weight:800}.bar{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;width:70px;display:inline-block;vertical-align:middle}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand2),var(--good))}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar select,.toolbar input{width:auto;min-width:150px}
+.qitem{display:flex;align-items:center;gap:14px;padding:13px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--bg)}
+.qitem .qth{width:46px;height:60px;border-radius:8px;background:var(--panel2);display:grid;place-items:center;font-size:22px;flex:0 0 auto}
+.qitem .qmeta{flex:1;min-width:0}.qitem .qmeta .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st{font-size:11px;padding:3px 9px;border-radius:12px;font-weight:600}.st.wait{background:rgba(255,176,32,.15);color:var(--warn)}.st.done{background:rgba(22,199,132,.15);color:var(--good)}.st.draft{background:var(--chip);color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:40px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--panel2);border:1px solid var(--good);color:var(--text);padding:13px 18px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.4);transform:translateY(80px);opacity:0;transition:.3s;z-index:99;max-width:340px;word-break:break-word}
+.toast.show{transform:translateY(0);opacity:1}
+.note{background:rgba(37,244,238,.07);border:1px solid #244;border-radius:10px;padding:12px;font-size:12.5px;color:#bfe;line-height:1.55;margin-top:10px}
+.banner{background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.4);color:#ffd98a;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:13px}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="logo"><span class="dot">⚡</span> Affiliate Studio</div>
+    <nav class="nav" id="nav">
+      <button data-p="overview" class="active"><span class="ic">📊</span> ภาพรวม</button>
+      <button data-p="compose"><span class="ic">➕</span> สร้างโพสต์</button>
+      <button data-p="queue"><span class="ic">🗓️</span> คิว / ตั้งเวลา</button>
+      <button data-p="scanner"><span class="ic">🔍</span> สแกนสินค้า</button>
+    </nav>
+    <div class="tip">เชื่อม TikTok แล้วกดโพสต์ได้จากที่นี่เลย (ผ่าน Content Posting API)</div>
+  </aside>
+
+  <main class="main">
+    <div class="head">
+      <div>
+        <h1 id="ttl">ภาพรวม</h1>
+        <p id="sub">สรุปผลและกิจกรรมของช่อง</p>
+      </div>
+      <div class="userbox" id="userbox">
+        <button class="btn" id="loginBtn" onclick="location.href='/auth/tiktok'">🎵 เชื่อม TikTok</button>
+      </div>
+    </div>
+
+    <div class="banner" id="sandboxBanner">โหมด Sandbox: คลิปที่โพสต์ผ่าน API จะตั้งเป็น <b>ส่วนตัว (SELF_ONLY)</b> จนกว่าแอปจะผ่าน audit ของ TikTok</div>
+
+    <section class="page show" id="p-overview">
+      <div class="cards">
+        <div class="card"><div class="k">โพสต์ในคิว</div><div class="v" id="ovQueue">0</div><div class="d">รอโพสต์</div></div>
+        <div class="card"><div class="k">โพสต์สำเร็จ</div><div class="v" id="ovDone">0</div><div class="d">ผ่าน API</div></div>
+        <div class="card"><div class="k">สถานะ TikTok</div><div class="v" id="ovConn" style="font-size:18px">ยังไม่เชื่อม</div><div class="d" id="ovConnD">&nbsp;</div></div>
+        <div class="card"><div class="k">สินค้าน่าทำ</div><div class="v" id="ovHot">0</div><div class="d">คะแนน ≥ 80</div></div>
+      </div>
+      <div class="panel">
+        <h3>เริ่มต้นเร็ว</h3>
+        <div class="row" style="flex-wrap:wrap;gap:10px">
+          <button class="btn" onclick="go('scanner')">🔍 หาสินค้าคอมสูง</button>
+          <button class="btn ghost" onclick="go('compose')">➕ สร้างโพสต์ใหม่</button>
+          <button class="btn ghost" onclick="go('queue')">🗓️ ดูคิว</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="p-compose">
+      <div class="grid2">
+        <div class="panel">
+          <h3>สื่อ &amp; แคปชั่น</h3>
+          <input type="file" id="file" accept="video/mp4,video/quicktime" hidden>
+          <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+            <div style="font-size:30px">⬆️</div>
+            <div>คลิกหรือลากไฟล์ <b>วิดีโอ</b> มาวาง</div>
+            <div class="mini">MP4, MOV</div>
+          </div>
+          <label class="l">แคปชั่น</label>
+          <textarea id="cap" placeholder="เขียนแคปชั่นดึงดูด..."></textarea>
+          <label class="l">แฮชแท็ก (เว้นวรรค)</label>
+          <input id="tags" placeholder="#fyp #รีวิว #ของมันต้องมี">
+        </div>
+        <div class="panel">
+          <h3>ช่องทาง &amp; ตัวเลือก</h3>
+          <div class="chips"><span class="chip sel">🎵 TikTok</span></div>
+
+          <label class="l">วิธีโพสต์</label>
+          <select id="mode">
+            <option value="direct">Direct Post — โพสต์ขึ้นโปรไฟล์เลย</option>
+            <option value="draft">Upload — ส่งเป็นแบบร่างให้แก้ก่อน</option>
+          </select>
+
+          <label class="l">ติดตะกร้าสินค้า (Affiliate)</label>
+          <div class="switch">
+            <div><div style="font-weight:600">ติดสินค้า</div><div class="mini" id="cartHint">ปิด = เน้นเอนเกจเฉย ๆ</div></div>
+            <div class="tg" id="cartTg" onclick="toggleCart()"></div>
+          </div>
+          <div id="prodWrap" style="display:none">
+            <label class="l">สินค้าที่จะติด</label>
+            <div class="selprod" id="selProd"><div class="px">🛍️</div><div style="flex:1"><div class="mini">ยังไม่เลือก</div></div><button class="btn ghost sm" onclick="go('scanner')">เลือก</button></div>
+          </div>
+
+          <label class="l">เวลาโพสต์</label>
+          <select id="when" onchange="toggleWhen()">
+            <option value="now">โพสต์ทันที (ยิงผ่าน API)</option>
+            <option value="sched">ตั้งเวลาล่วงหน้า (เข้าคิว)</option>
+          </select>
+          <input type="datetime-local" id="schedAt" style="display:none;margin-top:8px">
+
+          <div class="row" style="margin-top:16px">
+            <button class="btn" style="flex:1" id="submitBtn" onclick="submitPost()">🚀 โพสต์ / เข้าคิว</button>
+          </div>
+          <div class="note" id="composeNote">ต้องเชื่อม TikTok ก่อนถึงจะโพสต์ทันทีได้ การตั้งเวลาจะเก็บเข้าคิวในเครื่อง</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="p-queue">
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;margin-bottom:12px">
+          <h3 style="margin:0">คิวโพสต์</h3>
+          <select id="qfilter" onchange="renderQueue()" style="width:auto">
+            <option value="all">ทั้งหมด</option><option value="wait">รอโพสต์</option><option value="done">โพสต์แล้ว</option><option value="draft">ร่าง</option>
+          </select>
+        </div>
+        <div id="qlist"></div>
+      </div>
+    </section>
+
+    <section class="page" id="p-scanner">
+      <div class="panel">
+        <h3>สแกนหาสินค้า — คอมสูง · ยิงแอดเยอะ · แบรนด์กระแส</h3>
+        <div class="toolbar">
+          <input id="q" placeholder="🔍 ค้นชื่อ/แบรนด์" oninput="renderScan()">
+          <select id="cat" onchange="renderScan()"><option value="">หมวดทั้งหมด</option></select>
+          <select id="sortby" onchange="renderScan()">
+            <option value="score">เรียง: คะแนนรวม</option><option value="commission">เรียง: คอมมิชชั่น</option><option value="ads">เรียง: งบแอด</option><option value="trend">เรียง: กระแส</option>
+          </select>
+          <label class="mini row" style="gap:6px"><input type="checkbox" id="hotonly" style="width:auto" onchange="renderScan()"> คะแนน ≥ 80</label>
+        </div>
+        <div style="overflow:auto"><table>
+          <thead><tr><th>สินค้า / แบรนด์</th><th>หมวด</th><th>คอม %</th><th>งบแอด</th><th>รู้จักแบรนด์</th><th>กระแส</th><th>คะแนนรวม</th><th></th></tr></thead>
+          <tbody id="scanBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let PRODUCTS=[], queue=JSON.parse(localStorage.getItem('aff_queue')||'[]');
+let curMedia=null, curProduct=null, cartOn=false, me=null;
+const titles={overview:['ภาพรวม','สรุปผลและกิจกรรมของช่อง'],compose:['สร้างโพสต์','อัปโหลดแล้วโพสต์ผ่าน TikTok API'],queue:['คิว / ตั้งเวลา','จัดการโพสต์'],scanner:['สแกนสินค้า','หาสินค้าคอมสูง']};
+
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function go(p){
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('show'));
+  document.getElementById('p-'+p).classList.add('show');
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  document.getElementById('ttl').textContent=titles[p][0];document.getElementById('sub').textContent=titles[p][1];
+  if(p==='queue')renderQueue(); if(p==='overview')updateOverview();
+}
+document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)go(b.dataset.p);});
+
+async function loadMe(){
+  try{const r=await fetch('/api/me');if(r.ok){me=await r.json();renderUser();}}catch(e){}
+}
+function renderUser(){
+  if(me&&me.display_name){
+    document.getElementById('userbox').innerHTML=
+      '<img src="'+(me.avatar_url||'')+'" alt=""><div><div style="font-weight:600">'+me.display_name+'</div>'+
+      '<div class="mini">@'+(me.username||'')+' · <a href="#" onclick="logout();return false" style="color:var(--brand)">ออก</a></div></div>';
+    document.getElementById('ovConn').textContent='เชื่อมแล้ว';
+    document.getElementById('ovConnD').textContent='@'+(me.username||'');
+  }
+}
+async function logout(){await fetch('/api/logout');location.href='/';}
+
+const drop=document.getElementById('drop');
+document.getElementById('file').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return; curMedia=f;
+  drop.classList.add('has');
+  drop.innerHTML='<div class="preview"><div class="thumb">🎬</div><div><div style="font-weight:600">'+f.name+'</div><div class="mini">'+(f.size/1048576).toFixed(1)+' MB</div></div></div>';
+});
+['dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>e.preventDefault()));
+drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){document.getElementById('file').files=e.dataTransfer.files;document.getElementById('file').dispatchEvent(new Event('change'));}});
+function toggleCart(){cartOn=!cartOn;document.getElementById('cartTg').classList.toggle('on',cartOn);document.getElementById('prodWrap').style.display=cartOn?'block':'none';document.getElementById('cartHint').textContent=cartOn?'เปิด = ติดสินค้าลงคลิป':'ปิด = เน้นเอนเกจเฉย ๆ';}
+function toggleWhen(){document.getElementById('schedAt').style.display=document.getElementById('when').value==='sched'?'block':'none';}
+function pickProduct(p){curProduct=p;cartOn=true;document.getElementById('cartTg').classList.add('on');document.getElementById('prodWrap').style.display='block';document.getElementById('cartHint').textContent='เปิด = ติดสินค้าลงคลิป';
+  document.getElementById('selProd').innerHTML='<div class="px">🛍️</div><div style="flex:1"><div style="font-weight:600">'+p.name+'</div><div class="mini">'+p.brand+' · คอม '+p.commission+'% · คะแนน '+p.score+'</div></div><button class="btn ghost sm" onclick="go(\'scanner\')">เปลี่ยน</button>';
+  toast('เลือกสินค้า: '+p.name);go('compose');}
+
+async function submitPost(){
+  const when=document.getElementById('when').value;
+  const cap=(document.getElementById('cap').value||'')+(document.getElementById('tags').value?(' '+document.getElementById('tags').value):'');
+  if(cartOn&&!curProduct){toast('⚠️ เปิดติดตะกร้าแล้วแต่ยังไม่เลือกสินค้า');return;}
+
+  if(when==='sched'){
+    const at=document.getElementById('schedAt').value;
+    if(!at){toast('⚠️ กรุณาตั้งเวลา');return;}
+    queue.unshift({id:Date.now()+'',cap:cap||'(ไม่มีแคปชั่น)',product:cartOn?curProduct:null,schedAt:at,status:'wait',fileName:curMedia?curMedia.name:'(ยังไม่มีไฟล์)'});
+    saveQ();toast('🗓️ เข้าคิวตั้งเวลาแล้ว');resetCompose();go('queue');return;
+  }
+
+  if(!me){toast('⚠️ กรุณาเชื่อม TikTok ก่อน');return;}
+  if(!curMedia){toast('⚠️ กรุณาเลือกไฟล์วิดีโอ');return;}
+  const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='⏳ กำลังอัปโหลด...';
+  try{
+    const fd=new FormData();
+    fd.append('video',curMedia);fd.append('caption',cap);
+    fd.append('directPost',document.getElementById('mode').value==='direct'?'true':'false');
+    const r=await fetch('/api/post',{method:'POST',body:fd});
+    const d=await r.json();
+    if(!r.ok||!d.ok){toast('❌ ผิดพลาด: '+JSON.stringify(d));btn.disabled=false;btn.textContent='🚀 โพสต์ / เข้าคิว';return;}
+    toast('✅ ส่งขึ้น TikTok แล้ว (publish_id: '+String(d.publish_id).slice(0,10)+'...)');
+    queue.unshift({id:d.publish_id,cap:cap||'(ไม่มีแคปชั่น)',product:cartOn?curProduct:null,status:'done',posted:Date.now(),fileName:curMedia.name});
+    saveQ();resetCompose();pollStatus(d.publish_id);go('queue');
+  }catch(e){toast('❌ '+e.message);}
+  btn.disabled=false;btn.textContent='🚀 โพสต์ / เข้าคิว';
+}
+async function pollStatus(id){
+  try{const r=await fetch('/api/post/'+id+'/status');const d=await r.json();if(d.status)toast('สถานะ: '+d.status);}catch(e){}
+}
+function resetCompose(){curMedia=null;curProduct=null;cartOn=false;document.getElementById('cap').value='';document.getElementById('tags').value='';document.getElementById('cartTg').classList.remove('on');document.getElementById('prodWrap').style.display='none';document.getElementById('schedAt').value='';document.getElementById('when').value='now';document.getElementById('schedAt').style.display='none';drop.classList.remove('has');drop.innerHTML='<div style="font-size:30px">⬆️</div><div>คลิกหรือลากไฟล์ <b>วิดีโอ</b> มาวาง</div><div class="mini">MP4, MOV</div>';}
+
+function saveQ(){localStorage.setItem('aff_queue',JSON.stringify(queue));updateOverview();}
+function delPost(id){queue=queue.filter(p=>p.id!==id);saveQ();renderQueue();toast('ลบแล้ว');}
+function renderQueue(){
+  const f=document.getElementById('qfilter').value;
+  const list=queue.filter(p=>f==='all'||p.status===f);
+  const el=document.getElementById('qlist');
+  if(!list.length){el.innerHTML='<div class="empty">ยังไม่มีโพสต์ในคิว</div>';return;}
+  const stMap={wait:['รอโพสต์','wait'],done:['โพสต์แล้ว','done'],draft:['ร่าง','draft']};
+  el.innerHTML=list.map(function(p){
+    const st=stMap[p.status]||stMap.draft;
+    const time=p.status==='wait'&&p.schedAt?('⏰ '+new Date(p.schedAt).toLocaleString('th-TH',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})):(p.status==='done'?'✅ '+new Date(p.posted||Date.now()).toLocaleDateString('th-TH'):'แบบร่าง');
+    const prod=p.product?'<span class="st" style="background:rgba(255,45,85,.13);color:var(--brand)">🛍️ '+p.product.name+'</span>':'<span class="st draft">เน้นเอนเกจ</span>';
+    return '<div class="qitem"><div class="qth">🎬</div><div class="qmeta"><div class="t">'+p.cap+'</div>'+
+      '<div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap"><span class="st '+st[1]+'">'+st[0]+'</span>'+prod+'<span class="mini">🎵 TikTok · '+time+'</span></div></div>'+
+      '<div class="row"><button class="btn ghost sm" onclick="delPost(\''+p.id+'\')">ลบ</button></div></div>';
+  }).join('');
+}
+
+const sortField={score:'score',commission:'commission',ads:'ads',trend:'trend'};
+function tagColor(v){if(v>=80)return['rgba(22,199,132,.15)','var(--good)'];if(v>=60)return['rgba(255,176,32,.15)','var(--warn)'];return['var(--chip)','var(--muted)'];}
+function renderScan(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const cat=document.getElementById('cat').value;
+  const key=document.getElementById('sortby').value;
+  const hot=document.getElementById('hotonly').checked;
+  let rows=PRODUCTS.filter(p=>(!q||(p.name+p.brand).toLowerCase().includes(q))&&(!cat||p.cat===cat)&&(!hot||p.score>=80));
+  rows.sort((a,b)=>b[sortField[key]]-a[sortField[key]]);
+  document.getElementById('scanBody').innerHTML=rows.map(function(p){
+    const sc=tagColor(p.score),aw=tagColor(p.brand_aw);
+    return '<tr><td><div style="font-weight:600">'+p.name+'</div><div class="mini">'+p.brand+'</div></td><td><span class="mini">'+p.cat+'</span></td>'+
+      '<td><b style="color:var(--good)">'+p.commission+'%</b></td><td><div class="bar"><i style="width:'+p.ads+'%"></i></div> <span class="mini">'+p.ads+'</span></td>'+
+      '<td><span class="tag" style="background:'+aw[0]+';color:'+aw[1]+'">'+p.brand_aw+'</span></td><td>'+(p.trend>=85?'🔥':'')+' <span class="mini">'+p.trend+'</span></td>'+
+      '<td><span class="score" style="color:'+sc[1]+'">'+p.score+'</span></td>'+
+      '<td><button class="btn sm" onclick=\'pickProduct('+JSON.stringify(p).replace(/'/g,"&#39;")+')\'>ติดคลิป</button></td></tr>';
+  }).join('')||'<tr><td colspan="8" class="empty">ไม่พบสินค้า</td></tr>';
+}
+
+function updateOverview(){
+  document.getElementById('ovQueue').textContent=queue.filter(p=>p.status==='wait').length;
+  document.getElementById('ovDone').textContent=queue.filter(p=>p.status==='done').length;
+  document.getElementById('ovHot').textContent=PRODUCTS.filter(p=>p.score>=80).length;
+}
+
+async function init(){
+  try{const r=await fetch('/api/products');PRODUCTS=await r.json();}catch(e){PRODUCTS=[];}
+  [...new Set(PRODUCTS.map(p=>p.cat))].forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;document.getElementById('cat').appendChild(o);});
+  renderScan();updateOverview();renderQueue();
+  await loadMe();
+  if(location.search.includes('connected=1')){toast('✅ เชื่อม TikTok สำเร็จ');history.replaceState({},'','/');}
+}
+init();
+</script>
+</body>
+</html>
