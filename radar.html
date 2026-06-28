@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Affiliate Market Radar</title>
+<style>
+:root{--bg:#0b0e14;--panel:#141925;--panel2:#1c2333;--line:#262f43;--text:#e7ecf5;--muted:#8a96ad;--brand:#ff2d55;--brand2:#25f4ee;--good:#16c784;--warn:#ffb020;--bad:#f6465d;--chip:#222b3d}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',system-ui,'Noto Sans Thai',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 24px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px}
+.dot{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center}
+.head .date{color:var(--muted);font-size:13px}
+.digest{background:linear-gradient(135deg,rgba(255,45,85,.12),rgba(37,244,238,.06));border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+.digest h2{margin:0 0 10px;font-size:16px}
+.digest ul{margin:0;padding-left:18px;line-height:1.8}
+.digest li b{color:var(--brand2)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px}
+.card .k{color:var(--muted);font-size:12px}.card .v{font-size:20px;font-weight:800;margin-top:6px}.card .d{font-size:12px;margin-top:4px;color:var(--good)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+.panel h3{margin:0 0 14px;font-size:15px}
+.movers{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.mv{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.mv .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.mv .row:last-child{border:0}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+select,input{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);font-size:13px}
+th{color:var(--muted);font-size:12px;cursor:pointer}
+.bar{height:6px;border-radius:4px;background:var(--panel2);width:64px;display:inline-block;vertical-align:middle;overflow:hidden}
+.bar i{display:block;height:100%}
+.tag{padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap}
+.score{font-weight:800}
+.up{color:var(--good)}.down{color:var(--bad)}
+.note{background:rgba(37,244,238,.06);border:1px solid #244;border-radius:10px;padding:12px;font-size:12px;color:#bfe;line-height:1.6;margin-top:12px}
+@media(max-width:880px){.cards{grid-template-columns:repeat(2,1fr)}.movers{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="logo"><span class="dot">📡</span> Affiliate Market Radar</div>
+    <div class="date" id="date"></div>
+  </div>
+
+  <div class="digest">
+    <h2>🧠 สรุปตลาดวันนี้</h2>
+    <ul id="digest"></ul>
+  </div>
+
+  <div class="cards" id="kpi"></div>
+
+  <div class="movers">
+    <div class="mv"><h3 style="margin:0 0 10px;font-size:14px">📈 มาแรง (7 วัน)</h3><div id="risers"></div></div>
+    <div class="mv"><h3 style="margin:0 0 10px;font-size:14px">📉 กำลังเย็นลง</h3><div id="coolers"></div></div>
+  </div>
+
+  <div class="panel">
+    <h3>เรดาร์สินค้า — เรียงตาม Opportunity Score</h3>
+    <div class="toolbar">
+      <input id="q" placeholder="🔍 ค้นชื่อ/แบรนด์" oninput="render()">
+      <select id="cat" onchange="render()"><option value="">ทุกหมวด</option></select>
+      <select id="sort" onchange="render()">
+        <option value="opp">เรียง: Opportunity</option>
+        <option value="commission">เรียง: คอมมิชชั่น</option>
+        <option value="trend7d">เรียง: กระแสมาแรง</option>
+        <option value="adIntensity">เรียง: ความเข้มแอด</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px"><input type="checkbox" id="blue" onchange="render()"> เฉพาะ Blue Ocean</label>
+    </div>
+    <div style="overflow:auto"><table>
+      <thead><tr>
+        <th>สินค้า / แบรนด์</th><th>หมวด</th><th>กระแส 7วัน</th><th>คอม %</th>
+        <th>ความเข้มแอด</th><th>คนทำคลิป</th><th>Opportunity</th><th>คำแนะนำ</th>
+      </tr></thead>
+      <tbody id="body"></tbody>
+    </table></div>
+    <div class="note">
+      <b>Opportunity Score</b> = กระแส×0.3 + คอมมิชชั่น×0.3 + ความเข้มแอด×0.2 + (คู่แข่งน้อย)×0.2 ·
+      <b>Blue Ocean</b> = คะแนน ≥ 75 และครีเอเตอร์ทำคลิปยังน้อย<br>
+      <b>แหล่งข้อมูลจริง (ต่อเสียบทีหลัง):</b> กระแส/อันดับ → TikTok Creative Center "Top Products" · คอมมิชชั่น+ยอดขาย+จำนวนครีเอเตอร์ → Kalodata/FastMoss/EchoTik API · ความเข้มแอด → TikTok Ad Library / ad-monitoring ของ FastMoss
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== ข้อมูลตัวอย่าง (โครงสร้างตรงกับ data จริง พร้อมเสียบ API ภายหลัง) ======
+const PRODUCTS=[
+ {name:'เซรั่มวิตซีเข้มข้น',brand:'GLOWLAB',cat:'ความงาม',commission:25,trend7d:62,adIntensity:92,saturation:48,sold:18400,price:390,rating:4.8},
+ {name:'ครีมกันแดดซองเดียว',brand:'SunGuard',cat:'ความงาม',commission:30,trend7d:88,adIntensity:74,saturation:35,sold:12600,price:120,rating:4.7},
+ {name:'อาหารเสริมคอลลาเจน',brand:'Viti+',cat:'สุขภาพ',commission:35,trend7d:41,adIntensity:95,saturation:70,sold:9800,price:590,rating:4.6},
+ {name:'ลิปออยล์เปลี่ยนสี',brand:'VELVET',cat:'ความงาม',commission:28,trend7d:95,adIntensity:70,saturation:30,sold:15200,price:180,rating:4.9},
+ {name:'หูฟังไร้สาย Pro',brand:'SonicX',cat:'แกดเจ็ต',commission:12,trend7d:18,adIntensity:88,saturation:90,sold:7400,price:990,rating:4.5},
+ {name:'ไฟ Mood Light ตั้งโต๊ะ',brand:'LumiGlow',cat:'ไลฟ์สไตล์',commission:22,trend7d:120,adIntensity:55,saturation:25,sold:21000,price:290,rating:4.8},
+ {name:'ชุดเซตสกินแคร์เกาหลี 5 ชิ้น',brand:'DermaPure',cat:'ความงาม',commission:32,trend7d:54,adIntensity:90,saturation:58,sold:8900,price:790,rating:4.7},
+ {name:'หม้อทอดไร้น้ำมัน 5L',brand:'CookEasy',cat:'เครื่องใช้',commission:10,trend7d:8,adIntensity:85,saturation:88,sold:6100,price:1290,rating:4.6},
+ {name:'แปรงสีฟันไฟฟ้า',brand:'CleanMax',cat:'สุขภาพ',commission:16,trend7d:-12,adIntensity:60,saturation:72,sold:4300,price:450,rating:4.4},
+ {name:'กระติกเก็บความเย็น 2L',brand:'IceMate',cat:'ไลฟ์สไตล์',commission:18,trend7d:34,adIntensity:48,saturation:40,sold:5600,price:350,rating:4.5},
+ {name:'รองเท้าวิ่งน้ำหนักเบา',brand:'AeroRun',cat:'แฟชั่น',commission:15,trend7d:-5,adIntensity:80,saturation:85,sold:3900,price:1190,rating:4.6},
+ {name:'มาส์กหน้าใส 10 แผ่น',brand:'AquaVeil',cat:'ความงาม',commission:33,trend7d:77,adIntensity:66,saturation:33,sold:13400,price:230,rating:4.8},
+];
+function commissionScore(c){return Math.min(100,Math.round(c/35*100));}
+function trendScore(t){return Math.max(0,Math.min(100,Math.round(50+t*0.5)));}
+PRODUCTS.forEach(p=>{
+  p.opp=Math.round(trendScore(p.trend7d)*0.3 + commissionScore(p.commission)*0.3 + p.adIntensity*0.2 + (100-p.saturation)*0.2);
+  p.blueOcean=p.opp>=75 && p.saturation<50;
+});
+function verdict(p){
+  if(p.blueOcean)return['🔥 Blue Ocean','rgba(22,199,132,.15)','var(--good)'];
+  if(p.trend7d<0)return['กำลังเย็นลง','rgba(246,70,93,.15)','var(--bad)'];
+  if(p.saturation>=80)return['แข่งดุ คนทำเยอะ','var(--chip)','var(--muted)'];
+  if(p.opp>=75)return['น่าทำ','rgba(255,176,32,.15)','var(--warn)'];
+  return['ปานกลาง','var(--chip)','var(--muted)'];
+}
+function color(v){if(v>=75)return'var(--good)';if(v>=50)return'var(--warn)';return'var(--muted)';}
+
+document.getElementById('date').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+[...new Set(PRODUCTS.map(p=>p.cat))].forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;document.getElementById('cat').appendChild(o);});
+
+// ====== Daily digest (สรุปอัตโนมัติจากข้อมูล) ======
+function buildDigest(){
+  const byOpp=[...PRODUCTS].sort((a,b)=>b.opp-a.opp);
+  const byTrend=[...PRODUCTS].sort((a,b)=>b.trend7d-a.trend7d);
+  const byAd=[...PRODUCTS].sort((a,b)=>b.adIntensity-a.adIntensity);
+  const blue=byOpp.filter(p=>p.blueOcean);
+  const top=byOpp[0], riser=byTrend[0], ad=byAd[0];
+  const lines=[
+    `โอกาสสูงสุดวันนี้: <b>${top.name}</b> (${top.brand}) คะแนน ${top.opp} — คอม ${top.commission}% กระแส +${top.trend7d}%`,
+    `มาแรงที่สุด: <b>${riser.name}</b> พุ่ง <b>+${riser.trend7d}%</b> ใน 7 วัน`,
+    `แบรนด์ทุ่มแอดหนักสุด: <b>${ad.brand}</b> (${ad.name}) ความเข้มแอด ${ad.adIntensity}/100 — มีดีมานด์ให้เกาะ`,
+    blue.length?`🔥 Blue Ocean ${blue.length} ตัว (คอมดี คนทำยังน้อย): <b>${blue.slice(0,3).map(p=>p.name).join(', ')}</b>`:'วันนี้ยังไม่มีสินค้า Blue Ocean ชัดเจน'
+  ];
+  document.getElementById('digest').innerHTML=lines.map(l=>`<li>${l}</li>`).join('');
+}
+
+function buildKpi(){
+  const hot=PRODUCTS.filter(p=>p.opp>=80).length;
+  const avgComm=Math.round(PRODUCTS.filter(p=>p.cat==='ความงาม').reduce((s,p)=>s+p.commission,0)/PRODUCTS.filter(p=>p.cat==='ความงาม').length);
+  const topAd=[...PRODUCTS].sort((a,b)=>b.adIntensity-a.adIntensity)[0];
+  const blue=PRODUCTS.filter(p=>p.blueOcean).length;
+  document.getElementById('kpi').innerHTML=[
+    ['สินค้าโอกาสสูง','≥ 80 คะแนน',hot],
+    ['คอมเฉลี่ย หมวดบิวตี้','%',avgComm+'%'],
+    ['แบรนด์ยิงแอดหนักสุด',topAd.adIntensity+'/100',topAd.brand],
+    ['Blue Ocean วันนี้','คอมดี+คนทำน้อย',blue],
+  ].map(c=>`<div class="card"><div class="k">${c[0]}</div><div class="v">${c[2]}</div><div class="d">${c[1]}</div></div>`).join('');
+}
+
+function buildMovers(){
+  const up=[...PRODUCTS].sort((a,b)=>b.trend7d-a.trend7d).slice(0,4);
+  const down=[...PRODUCTS].sort((a,b)=>a.trend7d-b.trend7d).slice(0,4);
+  const row=(p,cls,sign)=>`<div class="row"><span>${p.name} <span style="color:var(--muted)">· ${p.brand}</span></span><span class="${cls}">${sign}${p.trend7d}%</span></div>`;
+  document.getElementById('risers').innerHTML=up.map(p=>row(p,'up','+')).join('');
+  document.getElementById('coolers').innerHTML=down.map(p=>row(p,'down','')).join('');
+}
+
+function render(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const cat=document.getElementById('cat').value;
+  const sort=document.getElementById('sort').value;
+  const blue=document.getElementById('blue').checked;
+  let rows=PRODUCTS.filter(p=>(!q||(p.name+p.brand).toLowerCase().includes(q))&&(!cat||p.cat===cat)&&(!blue||p.blueOcean));
+  rows.sort((a,b)=>b[sort]-a[sort]);
+  document.getElementById('body').innerHTML=rows.map(p=>{
+    const v=verdict(p);
+    const tcls=p.trend7d>=0?'up':'down';
+    return `<tr>
+      <td><div style="font-weight:600">${p.name}</div><div style="color:var(--muted);font-size:12px">${p.brand} · ฿${p.price} · ⭐${p.rating} · ขาย ${p.sold.toLocaleString()}/ด.</div></td>
+      <td><span style="color:var(--muted)">${p.cat}</span></td>
+      <td class="${tcls}" style="font-weight:700">${p.trend7d>=0?'+':''}${p.trend7d}%</td>
+      <td><b style="color:var(--good)">${p.commission}%</b></td>
+      <td><span class="bar"><i style="width:${p.adIntensity}%;background:var(--warn)"></i></span> <span style="color:var(--muted);font-size:12px">${p.adIntensity}</span></td>
+      <td><span class="bar"><i style="width:${p.saturation}%;background:${p.saturation>=70?'var(--bad)':'var(--brand2)'}"></i></span> <span style="color:var(--muted);font-size:12px">${p.saturation}</span></td>
+      <td><span class="score" style="color:${color(p.opp)}">${p.opp}</span></td>
+      <td><span class="tag" style="background:${v[1]};color:${v[2]}">${v[0]}</span></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:30px">ไม่พบสินค้า</td></tr>';
+}
+
+buildDigest();buildKpi();buildMovers();render();
+</script>
+</body>
+</html>
