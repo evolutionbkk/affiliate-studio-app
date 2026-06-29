@@ -1,5 +1,5 @@
 /**
- * Affiliate Studio — Backend
+ * Affiliate Studio - Backend
  * Full TikTok integration: Login Kit (OAuth 2.0) + Content Posting API
  *
  * Endpoints
@@ -10,7 +10,7 @@
  *   GET  /api/logout        -> clear session
  *   GET  /api/products      -> product scanner data (commission / ads / trend scoring)
  *   GET  /api/radar         -> Market Radar data (trend7d / ad intensity / saturation / Opportunity Score)
- *   POST /api/post          -> upload a video and (optionally) direct-post it to TikTok
+ *   POST /api/post          -> upload a video to TikTok (draft/inbox by default, or direct post)
  *   GET  /api/post/:id/status -> poll publish status
  *
  * Requires Node 18+ (built-in fetch). See README.md for setup.
@@ -125,42 +125,50 @@ app.get("/api/me", requireAuth, async (req, res) => {
 });
 
 /* ---------------- Content Posting API ----------------
- * Direct-post a video using the push_by_file (FILE_UPLOAD) method:
- *   1) init  -> get publish_id + upload_url
- *   2) PUT raw video bytes to upload_url
- *   3) client polls /api/post/:id/status
+ * Two modes:
+ *   DRAFT (default): upload to the creator's TikTok inbox. The creator opens
+ *     the TikTok app and finishes the post (caption + privacy) themselves, so
+ *     their account can stay PUBLIC and NO app audit is required.
+ *   DIRECT: publish straight to the profile. Requires an audited app to be
+ *     public; while unaudited it is forced to SELF_ONLY (private).
  * Docs: https://developers.tiktok.com/doc/content-posting-api-reference-direct-post
  */
 app.post("/api/post", requireAuth, upload.single("video"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "no_video_file" });
-    const { caption = "", directPost = "true", privacy = "SELF_ONLY" } = req.body;
+    // Default mode is DRAFT (upload to TikTok inbox).
+    const { caption = "", directPost = "false", privacy = "SELF_ONLY" } = req.body;
+    const isDirect = directPost === "true";
 
     const videoSize = req.file.size;
     const chunkSize = videoSize;            // single chunk (files <= 64MB can be one chunk)
     const totalChunks = 1;
 
-    const initBody = {
-      post_info: {
-        title: caption,
-        privacy_level: privacy,            // SELF_ONLY for unaudited apps; PUBLIC_TO_EVERYONE after audit
-        disable_comment: false,
-        disable_duet: false,
-        disable_stitch: false,
-      },
-      source_info: {
-        source: "FILE_UPLOAD",
-        video_size: videoSize,
-        chunk_size: chunkSize,
-        total_chunk_count: totalChunks,
-      },
+    const source_info = {
+      source: "FILE_UPLOAD",
+      video_size: videoSize,
+      chunk_size: chunkSize,
+      total_chunk_count: totalChunks,
     };
 
-    // Direct post vs. upload-as-draft use different init endpoints
-    const initUrl =
-      directPost === "true"
-        ? "https://open.tiktokapis.com/v2/post/publish/video/init/"
-        : "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/";
+    // DRAFT / inbox mode sends ONLY source_info (creator sets caption + privacy
+    // in-app). DIRECT mode includes post_info (privacy forced until audit).
+    const initBody = isDirect
+      ? {
+          post_info: {
+            title: caption,
+            privacy_level: privacy,
+            disable_comment: false,
+            disable_duet: false,
+            disable_stitch: false,
+          },
+          source_info,
+        }
+      : { source_info };
+
+    const initUrl = isDirect
+      ? "https://open.tiktokapis.com/v2/post/publish/video/init/"
+      : "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/";
 
     const init = await tk(initUrl, {
       method: "POST",
@@ -192,7 +200,7 @@ app.post("/api/post", requireAuth, upload.single("video"), async (req, res) => {
       return res.status(400).json({ step: "upload", status: put.status, body: t });
     }
 
-    res.json({ ok: true, publish_id });
+    res.json({ ok: true, publish_id, mode: isDirect ? "direct" : "draft" });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -213,35 +221,35 @@ app.get("/api/post/:id/status", requireAuth, async (req, res) => {
 });
 
 /* ===================================================================
- *  MARKET DATA — single source of truth
+ *  MARKET DATA - single source of truth
  *  Both the product scanner and Market Radar read from this one list.
- *  Each item carries the rich fields the Radar needs; the scanner just
- *  reads a projection of them. When the live data source is wired up
- *  (TikTok Creative Center Top Products, later Kalodata/FastMoss), only
- *  loadMarket() below needs to change — the API shapes stay the same.
+ *  Each item carries the rich fields the Radar needs; the scanner reads
+ *  a projection of them. When the live data source is wired up (TikTok
+ *  Creative Center Top Products, later Kalodata/FastMoss), only
+ *  loadMarket() below needs to change - the API shapes stay the same.
  * =================================================================== */
 
-// brand_aw = brand awareness (0-100), used by the scanner column "รู้จักแบรนด์"
+// brand_aw = brand awareness (0-100), used by the scanner column "brand"
 const MARKET = [
-  { name: "เซรั่มวิตซีเข้มข้น",            brand: "GLOWLAB",   cat: "ความงาม",   commission: 25, adIntensity: 92, saturation: 48, trend7d: 62,  brand_aw: 78, sold: 18400, price: 390,  rating: 4.8 },
-  { name: "ครีมกันแดดซองเดียว",          brand: "SunGuard",  cat: "ความงาม",   commission: 30, adIntensity: 74, saturation: 35, trend7d: 88,  brand_aw: 65, sold: 12600, price: 120,  rating: 4.7 },
-  { name: "อาหารเสริมคอลลาเจน",          brand: "Viti+",     cat: "สุขภาพ",    commission: 35, adIntensity: 95, saturation: 70, trend7d: 41,  brand_aw: 72, sold: 9800,  price: 590,  rating: 4.6 },
-  { name: "ลิปออยล์เปลี่ยนสี",            brand: "VELVET",    cat: "ความงาม",   commission: 28, adIntensity: 70, saturation: 30, trend7d: 95,  brand_aw: 60, sold: 15200, price: 180,  rating: 4.9 },
-  { name: "หูฟังไร้สาย Pro",             brand: "SonicX",    cat: "แกดเจ็ต",   commission: 12, adIntensity: 88, saturation: 90, trend7d: 18,  brand_aw: 90, sold: 7400,  price: 990,  rating: 4.5 },
-  { name: "ไฟ Mood Light ตั้งโต๊ะ",       brand: "LumiGlow",  cat: "ไลฟ์สไตล์", commission: 22, adIntensity: 55, saturation: 25, trend7d: 120, brand_aw: 45, sold: 21000, price: 290,  rating: 4.8 },
-  { name: "ชุดเซตสกินแคร์เกาหลี 5 ชิ้น",   brand: "DermaPure", cat: "ความงาม",   commission: 32, adIntensity: 90, saturation: 58, trend7d: 54,  brand_aw: 68, sold: 8900,  price: 790,  rating: 4.7 },
-  { name: "หม้อทอดไร้น้ำมัน 5L",         brand: "CookEasy",  cat: "เครื่องใช้", commission: 10, adIntensity: 85, saturation: 88, trend7d: 8,   brand_aw: 88, sold: 6100,  price: 1290, rating: 4.6 },
-  { name: "แปรงสีฟันไฟฟ้า",              brand: "CleanMax",  cat: "สุขภาพ",    commission: 16, adIntensity: 60, saturation: 72, trend7d: -12, brand_aw: 70, sold: 4300,  price: 450,  rating: 4.4 },
-  { name: "กระติกเก็บความเย็น 2L",        brand: "IceMate",   cat: "ไลฟ์สไตล์", commission: 18, adIntensity: 48, saturation: 40, trend7d: 34,  brand_aw: 55, sold: 5600,  price: 350,  rating: 4.5 },
-  { name: "รองเท้าวิ่งน้ำหนักเบา",         brand: "AeroRun",   cat: "แฟชั่น",    commission: 15, adIntensity: 80, saturation: 85, trend7d: -5,  brand_aw: 85, sold: 3900,  price: 1190, rating: 4.6 },
-  { name: "มาส์กหน้าใส 10 แผ่น",         brand: "AquaVeil",  cat: "ความงาม",   commission: 33, adIntensity: 66, saturation: 33, trend7d: 77,  brand_aw: 58, sold: 13400, price: 230,  rating: 4.8 },
+  { name: "เซรั่มวิตซีเข้มข้น", brand: "GLOWLAB", cat: "ความงาม", commission: 25, adIntensity: 92, saturation: 48, trend7d: 62, brand_aw: 78, sold: 18400, price: 390, rating: 4.8 },
+  { name: "ครีมกันแดดซองเดียว", brand: "SunGuard", cat: "ความงาม", commission: 30, adIntensity: 74, saturation: 35, trend7d: 88, brand_aw: 65, sold: 12600, price: 120, rating: 4.7 },
+  { name: "อาหารเสริมคอลลาเจน", brand: "Viti+", cat: "สุขภาพ", commission: 35, adIntensity: 95, saturation: 70, trend7d: 41, brand_aw: 72, sold: 9800, price: 590, rating: 4.6 },
+  { name: "ลิปออยล์เปลี่ยนสี", brand: "VELVET", cat: "ความงาม", commission: 28, adIntensity: 70, saturation: 30, trend7d: 95, brand_aw: 60, sold: 15200, price: 180, rating: 4.9 },
+  { name: "หูฟังไร้สาย Pro", brand: "SonicX", cat: "แกดเจ็ต", commission: 12, adIntensity: 88, saturation: 90, trend7d: 18, brand_aw: 90, sold: 7400, price: 990, rating: 4.5 },
+  { name: "ไฟ Mood Light ตั้งโต๊ะ", brand: "LumiGlow", cat: "ไลฟ์สไตล์", commission: 22, adIntensity: 55, saturation: 25, trend7d: 120, brand_aw: 45, sold: 21000, price: 290, rating: 4.8 },
+  { name: "ชุดเซตสกินแคร์เกาหลี 5 ชิ้น", brand: "DermaPure", cat: "ความงาม", commission: 32, adIntensity: 90, saturation: 58, trend7d: 54, brand_aw: 68, sold: 8900, price: 790, rating: 4.7 },
+  { name: "หม้อทอดไร้น้ำมัน 5L", brand: "CookEasy", cat: "เครื่องใช้", commission: 10, adIntensity: 85, saturation: 88, trend7d: 8, brand_aw: 88, sold: 6100, price: 1290, rating: 4.6 },
+  { name: "แปรงสีฟันไฟฟ้า", brand: "CleanMax", cat: "สุขภาพ", commission: 16, adIntensity: 60, saturation: 72, trend7d: -12, brand_aw: 70, sold: 4300, price: 450, rating: 4.4 },
+  { name: "กระติกเก็บความเย็น 2L", brand: "IceMate", cat: "ไลฟ์สไตล์", commission: 18, adIntensity: 48, saturation: 40, trend7d: 34, brand_aw: 55, sold: 5600, price: 350, rating: 4.5 },
+  { name: "รองเท้าวิ่งน้ำหนักเบา", brand: "AeroRun", cat: "แฟชั่น", commission: 15, adIntensity: 80, saturation: 85, trend7d: -5, brand_aw: 85, sold: 3900, price: 1190, rating: 4.6 },
+  { name: "มาส์กหน้าใส 10 แผ่น", brand: "AquaVeil", cat: "ความงาม", commission: 33, adIntensity: 66, saturation: 33, trend7d: 77, brand_aw: 58, sold: 13400, price: 230, rating: 4.8 },
 ];
 
 /* ---- scoring helpers (shared definitions) ---- */
 const commissionScore = (c) => Math.min(100, Math.round((c / 35) * 100));
 const trendScore = (t) => Math.max(0, Math.min(100, Math.round(50 + t * 0.5)));
 
-// Opportunity Score = กระแส×0.3 + คอมมิชชั่น×0.3 + ความเข้มแอด×0.2 + (คู่แข่งน้อย)×0.2
+// Opportunity Score = trend*0.3 + commission*0.3 + adIntensity*0.2 + (low competition)*0.2
 function withScores(p) {
   const opp = Math.round(
     trendScore(p.trend7d) * 0.3 +
@@ -253,7 +261,7 @@ function withScores(p) {
 }
 
 /**
- * loadMarket() — the single seam for real data.
+ * loadMarket() - the single seam for real data.
  * Today: returns the curated MARKET list. Later: fetch TikTok Creative
  * Center "Top Products" (free, best-effort), then merge Kalodata/FastMoss
  * fields, and return rows in the SAME shape as MARKET above.
@@ -300,5 +308,5 @@ app.get("/api/radar", async (req, res) => {
 /* ---------------- start ---------------- */
 app.listen(PORT, () => {
   console.log(`Affiliate Studio running at ${BASE_URL} (port ${PORT})`);
-  if (!TIKTOK_CLIENT_KEY) console.warn("⚠️  TIKTOK_CLIENT_KEY not set — see .env.example");
+  if (!TIKTOK_CLIENT_KEY) console.warn("TIKTOK_CLIENT_KEY not set - see .env.example");
 });

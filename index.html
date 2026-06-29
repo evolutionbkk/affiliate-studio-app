@@ -106,7 +106,7 @@ th{color:var(--muted);font-weight:600;font-size:12px}
       </div>
     </div>
 
-    <div class="banner" id="sandboxBanner">โหมด Sandbox: คลิปที่โพสต์ผ่าน API จะตั้งเป็น <b>ส่วนตัว (SELF_ONLY)</b> จนกว่าแอปจะผ่าน audit ของ TikTok</div>
+    <div class="banner" id="sandboxBanner">ช่วงรออนุมัติ: บัญชี TikTok <b>เปิด Public ได้ตามปกติ</b> · กดโพสต์จากแอปนี้แล้วคลิปจะไป <b>นอนในแบบร่าง/inbox ของ TikTok</b> ให้คุณไปกดโพสต์เองในแอป (เลือก Public ได้) — ไม่ต้องตั้งบัญชีเป็นส่วนตัว</div>
 
     <section class="page show" id="p-overview">
       <div class="cards">
@@ -147,8 +147,8 @@ th{color:var(--muted);font-weight:600;font-size:12px}
 
           <label class="l">วิธีโพสต์</label>
           <select id="mode">
-            <option value="direct">Direct Post — โพสต์ขึ้นโปรไฟล์เลย</option>
-            <option value="draft">Upload — ส่งเป็นแบบร่างให้แก้ก่อน</option>
+            <option value="draft">📥 ส่งเข้าแบบร่างใน TikTok (แนะนำช่วงนี้ — บัญชี Public ได้ ไปกดจบในแอป)</option>
+            <option value="direct">🚀 Direct Post ขึ้นโปรไฟล์เลย (ต้องผ่าน audit ก่อน ไม่งั้นคลิปเป็นส่วนตัว)</option>
           </select>
 
           <label class="l">ติดตะกร้าสินค้า (Affiliate)</label>
@@ -171,7 +171,7 @@ th{color:var(--muted);font-weight:600;font-size:12px}
           <div class="row" style="margin-top:16px">
             <button class="btn" style="flex:1" id="submitBtn" onclick="submitPost()">🚀 โพสต์ / เข้าคิว</button>
           </div>
-          <div class="note" id="composeNote">ต้องเชื่อม TikTok ก่อนถึงจะโพสต์ทันทีได้ การตั้งเวลาจะเก็บเข้าคิวในเครื่อง</div>
+          <div class="note" id="composeNote">โหมดแบบร่าง: คลิป + ไฟล์จะถูกส่งเข้า inbox ของ TikTok แล้วเปิดแอป TikTok → แถบ "กล่องข้อความ/แจ้งเตือน" เพื่อใส่แคปชั่น เลือก Public แล้วกดโพสต์เอง · การตั้งเวลาจะเก็บเข้าคิวในเครื่องนี้</div>
         </div>
       </div>
     </section>
@@ -321,8 +321,9 @@ async function submitPost(){
     const r=await fetch('/api/post',{method:'POST',body:fd});
     const d=await r.json();
     if(!r.ok||!d.ok){toast('❌ ผิดพลาด: '+JSON.stringify(d));btn.disabled=false;btn.textContent='🚀 โพสต์ / เข้าคิว';return;}
-    toast('✅ ส่งขึ้น TikTok แล้ว (publish_id: '+String(d.publish_id).slice(0,10)+'...)');
-    queue.unshift({id:d.publish_id,cap:cap||'(ไม่มีแคปชั่น)',product:cartOn?curProduct:null,status:'done',posted:Date.now(),fileName:curMedia.name});
+    const isDraft=d.mode!=='direct';
+    toast(isDraft?'📥 ส่งเข้าแบบร่างใน TikTok แล้ว — เปิดแอป TikTok ไปกดโพสต์ต่อได้เลย':'✅ ส่งขึ้นโปรไฟล์แล้ว (publish_id: '+String(d.publish_id).slice(0,10)+'...)');
+    queue.unshift({id:d.publish_id,cap:cap||'(ไม่มีแคปชั่น)',product:cartOn?curProduct:null,status:isDraft?'draft':'done',posted:Date.now(),fileName:curMedia.name});
     saveQ();resetCompose();pollStatus(d.publish_id);go('queue');
   }catch(e){toast('❌ '+e.message);}
   btn.disabled=false;btn.textContent='🚀 โพสต์ / เข้าคิว';
@@ -339,10 +340,10 @@ function renderQueue(){
   const list=queue.filter(p=>f==='all'||p.status===f);
   const el=document.getElementById('qlist');
   if(!list.length){el.innerHTML='<div class="empty">ยังไม่มีโพสต์ในคิว</div>';return;}
-  const stMap={wait:['รอโพสต์','wait'],done:['โพสต์แล้ว','done'],draft:['ร่าง','draft']};
+  const stMap={wait:['รอโพสต์','wait'],done:['โพสต์แล้ว','done'],draft:['ส่งเข้าแบบร่าง','draft']};
   el.innerHTML=list.map(function(p){
     const st=stMap[p.status]||stMap.draft;
-    const time=p.status==='wait'&&p.schedAt?('⏰ '+new Date(p.schedAt).toLocaleString('th-TH',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})):(p.status==='done'?'✅ '+new Date(p.posted||Date.now()).toLocaleDateString('th-TH'):'แบบร่าง');
+    const time=p.status==='wait'&&p.schedAt?('⏰ '+new Date(p.schedAt).toLocaleString('th-TH',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})):(p.status==='done'?'✅ '+new Date(p.posted||Date.now()).toLocaleDateString('th-TH'):'📥 ไปกดจบในแอป TikTok');
     const prod=p.product?'<span class="st" style="background:rgba(255,45,85,.13);color:var(--brand)">🛍️ '+p.product.name+'</span>':'<span class="st draft">เน้นเอนเกจ</span>';
     return '<div class="qitem"><div class="qth">🎬</div><div class="qmeta"><div class="t">'+p.cap+'</div>'+
       '<div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap"><span class="st '+st[1]+'">'+st[0]+'</span>'+prod+'<span class="mini">🎵 TikTok · '+time+'</span></div></div>'+
