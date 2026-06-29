@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Affiliate Studio</title>
 <style>
-:root{--bg:#0b0e14;--panel:#141925;--panel2:#1c2333;--line:#262f43;--text:#e7ecf5;--muted:#8a96ad;--brand:#ff2d55;--brand2:#25f4ee;--good:#16c784;--warn:#ffb020;--chip:#222b3d}
+:root{--bg:#0b0e14;--panel:#141925;--panel2:#1c2333;--line:#262f43;--text:#e7ecf5;--muted:#8a96ad;--brand:#ff2d55;--brand2:#25f4ee;--good:#16c784;--warn:#ffb020;--bad:#f6465d;--chip:#222b3d}
 *{box-sizing:border-box}
 body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,'Noto Sans Thai',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
 .app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
@@ -67,7 +67,18 @@ th{color:var(--muted);font-weight:600;font-size:12px}
 .toast.show{transform:translateY(0);opacity:1}
 .note{background:rgba(37,244,238,.07);border:1px solid #244;border-radius:10px;padding:12px;font-size:12.5px;color:#bfe;line-height:1.55;margin-top:10px}
 .banner{background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.4);color:#ffd98a;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:13px}
-@media(max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+/* ---- Market Radar ---- */
+.digest{background:linear-gradient(135deg,rgba(255,45,85,.12),rgba(37,244,238,.06));border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+.digest h2{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.digest h2 .date{color:var(--muted);font-size:12px;font-weight:400}
+.digest ul{margin:0;padding-left:18px;line-height:1.8}
+.digest li b{color:var(--brand2)}
+.movers{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.mv{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.mv .mrow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.mv .mrow:last-child{border:0}
+.up{color:var(--good)}.down{color:var(--bad)}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.movers{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -79,7 +90,7 @@ th{color:var(--muted);font-weight:600;font-size:12px}
       <button data-p="compose"><span class="ic">➕</span> สร้างโพสต์</button>
       <button data-p="queue"><span class="ic">🗓️</span> คิว / ตั้งเวลา</button>
       <button data-p="scanner"><span class="ic">🔍</span> สแกนสินค้า</button>
-      <a href="/radar.html" style="display:flex;align-items:center;gap:11px;width:100%;color:var(--muted);padding:11px 12px;border-radius:10px;font-size:14px;text-decoration:none"><span style="width:20px;text-align:center">📡</span> Market Radar</a>
+      <button data-p="radar"><span class="ic">📡</span> Market Radar</button>
     </nav>
     <div class="tip">เชื่อม TikTok แล้วกดโพสต์ได้จากที่นี่เลย (ผ่าน Content Posting API)</div>
   </aside>
@@ -108,6 +119,7 @@ th{color:var(--muted);font-weight:600;font-size:12px}
         <h3>เริ่มต้นเร็ว</h3>
         <div class="row" style="flex-wrap:wrap;gap:10px">
           <button class="btn" onclick="go('scanner')">🔍 หาสินค้าคอมสูง</button>
+          <button class="btn ghost" onclick="go('radar')">📡 เปิด Market Radar</button>
           <button class="btn ghost" onclick="go('compose')">➕ สร้างโพสต์ใหม่</button>
           <button class="btn ghost" onclick="go('queue')">🗓️ ดูคิว</button>
         </div>
@@ -193,24 +205,71 @@ th{color:var(--muted);font-weight:600;font-size:12px}
         </table></div>
       </div>
     </section>
+
+    <section class="page" id="p-radar">
+      <div class="digest">
+        <h2>🧠 สรุปตลาดวันนี้ <span class="date" id="rdate"></span></h2>
+        <ul id="rdigest"></ul>
+      </div>
+      <div class="cards" id="rkpi"></div>
+      <div class="movers">
+        <div class="mv"><h3 style="margin:0 0 10px;font-size:14px">📈 มาแรง (7 วัน)</h3><div id="rrisers"></div></div>
+        <div class="mv"><h3 style="margin:0 0 10px;font-size:14px">📉 กำลังเย็นลง</h3><div id="rcoolers"></div></div>
+      </div>
+      <div class="panel">
+        <h3>เรดาร์สินค้า — เรียงตาม Opportunity Score</h3>
+        <div class="toolbar">
+          <input id="rq" placeholder="🔍 ค้นชื่อ/แบรนด์" oninput="renderRadar()">
+          <select id="rcat" onchange="renderRadar()"><option value="">ทุกหมวด</option></select>
+          <select id="rsort" onchange="renderRadar()">
+            <option value="opp">เรียง: Opportunity</option>
+            <option value="commission">เรียง: คอมมิชชั่น</option>
+            <option value="trend7d">เรียง: กระแสมาแรง</option>
+            <option value="adIntensity">เรียง: ความเข้มแอด</option>
+          </select>
+          <label class="mini row" style="gap:6px"><input type="checkbox" id="rblue" style="width:auto" onchange="renderRadar()"> เฉพาะ Blue Ocean</label>
+        </div>
+        <div style="overflow:auto"><table>
+          <thead><tr>
+            <th>สินค้า / แบรนด์</th><th>หมวด</th><th>กระแส 7วัน</th><th>คอม %</th>
+            <th>ความเข้มแอด</th><th>คนทำคลิป</th><th>Opportunity</th><th>คำแนะนำ</th>
+          </tr></thead>
+          <tbody id="rbody"></tbody>
+        </table></div>
+        <div class="note">
+          <b>Opportunity Score</b> = กระแส×0.3 + คอมมิชชั่น×0.3 + ความเข้มแอด×0.2 + (คู่แข่งน้อย)×0.2 ·
+          <b>Blue Ocean</b> = คะแนน ≥ 75 และครีเอเตอร์ทำคลิปยังน้อย<br>
+          <b>แหล่งข้อมูลจริง (ต่อเสียบทีหลัง):</b> กระแส/อันดับ → TikTok Creative Center "Top Products" · คอมมิชชั่น+ยอดขาย+จำนวนครีเอเตอร์ → Kalodata/FastMoss/EchoTik API · ความเข้มแอด → TikTok Ad Library / ad-monitoring ของ FastMoss
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
-let PRODUCTS=[], queue=JSON.parse(localStorage.getItem('aff_queue')||'[]');
+let PRODUCTS=[], RADAR=[], queue=JSON.parse(localStorage.getItem('aff_queue')||'[]');
 let curMedia=null, curProduct=null, cartOn=false, me=null;
-const titles={overview:['ภาพรวม','สรุปผลและกิจกรรมของช่อง'],compose:['สร้างโพสต์','อัปโหลดแล้วโพสต์ผ่าน TikTok API'],queue:['คิว / ตั้งเวลา','จัดการโพสต์'],scanner:['สแกนสินค้า','หาสินค้าคอมสูง']};
+const titles={
+  overview:['ภาพรวม','สรุปผลและกิจกรรมของช่อง'],
+  compose:['สร้างโพสต์','อัปโหลดแล้วโพสต์ผ่าน TikTok API'],
+  queue:['คิว / ตั้งเวลา','จัดการโพสต์'],
+  scanner:['สแกนสินค้า','หาสินค้าคอมสูง'],
+  radar:['Market Radar','วิเคราะห์คู่แข่ง — กระแส · คอมมิชชั่น · ความเข้มแอด']
+};
 
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 function go(p){
+  if(!titles[p])p='overview';
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('show'));
   document.getElementById('p-'+p).classList.add('show');
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
   document.getElementById('ttl').textContent=titles[p][0];document.getElementById('sub').textContent=titles[p][1];
-  if(p==='queue')renderQueue(); if(p==='overview')updateOverview();
+  if(location.hash!=='#'+p)history.replaceState({},'','#'+p);
+  if(p==='queue')renderQueue(); if(p==='overview')updateOverview(); if(p==='radar')renderRadar();
 }
 document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)go(b.dataset.p);});
+window.addEventListener('hashchange',()=>{const p=location.hash.replace('#','');if(titles[p])go(p);});
 
 async function loadMe(){
   try{const r=await fetch('/api/me');if(r.ok){me=await r.json();renderUser();}}catch(e){}
@@ -237,7 +296,7 @@ drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){document.
 function toggleCart(){cartOn=!cartOn;document.getElementById('cartTg').classList.toggle('on',cartOn);document.getElementById('prodWrap').style.display=cartOn?'block':'none';document.getElementById('cartHint').textContent=cartOn?'เปิด = ติดสินค้าลงคลิป':'ปิด = เน้นเอนเกจเฉย ๆ';}
 function toggleWhen(){document.getElementById('schedAt').style.display=document.getElementById('when').value==='sched'?'block':'none';}
 function pickProduct(p){curProduct=p;cartOn=true;document.getElementById('cartTg').classList.add('on');document.getElementById('prodWrap').style.display='block';document.getElementById('cartHint').textContent='เปิด = ติดสินค้าลงคลิป';
-  document.getElementById('selProd').innerHTML='<div class="px">🛍️</div><div style="flex:1"><div style="font-weight:600">'+p.name+'</div><div class="mini">'+p.brand+' · คอม '+p.commission+'% · คะแนน '+p.score+'</div></div><button class="btn ghost sm" onclick="go(\'scanner\')">เปลี่ยน</button>';
+  document.getElementById('selProd').innerHTML='<div class="px">🛍️</div><div style="flex:1"><div style="font-weight:600">'+p.name+'</div><div class="mini">'+p.brand+' · คอม '+p.commission+'% · คะแนน '+(p.score!=null?p.score:p.opp)+'</div></div><button class="btn ghost sm" onclick="go(\'scanner\')">เปลี่ยน</button>';
   toast('เลือกสินค้า: '+p.name);go('compose');}
 
 async function submitPost(){
@@ -291,6 +350,7 @@ function renderQueue(){
   }).join('');
 }
 
+/* ---------------- product scanner ---------------- */
 const sortField={score:'score',commission:'commission',ads:'ads',trend:'trend'};
 function tagColor(v){if(v>=80)return['rgba(22,199,132,.15)','var(--good)'];if(v>=60)return['rgba(255,176,32,.15)','var(--warn)'];return['var(--chip)','var(--muted)'];}
 function renderScan(){
@@ -310,18 +370,100 @@ function renderScan(){
   }).join('')||'<tr><td colspan="8" class="empty">ไม่พบสินค้า</td></tr>';
 }
 
+/* ---------------- Market Radar ---------------- */
+function verdict(p){
+  if(p.blueOcean)return['🔥 Blue Ocean','rgba(22,199,132,.15)','var(--good)'];
+  if(p.trend7d<0)return['กำลังเย็นลง','rgba(246,70,93,.15)','var(--bad)'];
+  if(p.saturation>=80)return['แข่งดุ คนทำเยอะ','var(--chip)','var(--muted)'];
+  if(p.opp>=75)return['น่าทำ','rgba(255,176,32,.15)','var(--warn)'];
+  return['ปานกลาง','var(--chip)','var(--muted)'];
+}
+function oppColor(v){if(v>=75)return'var(--good)';if(v>=50)return'var(--warn)';return'var(--muted)';}
+function buildRadarDigest(){
+  if(!RADAR.length){document.getElementById('rdigest').innerHTML='';return;}
+  const byOpp=[...RADAR].sort((a,b)=>b.opp-a.opp);
+  const byTrend=[...RADAR].sort((a,b)=>b.trend7d-a.trend7d);
+  const byAd=[...RADAR].sort((a,b)=>b.adIntensity-a.adIntensity);
+  const blue=byOpp.filter(p=>p.blueOcean);
+  const top=byOpp[0], riser=byTrend[0], ad=byAd[0];
+  const lines=[
+    'โอกาสสูงสุดวันนี้: <b>'+top.name+'</b> ('+top.brand+') คะแนน '+top.opp+' — คอม '+top.commission+'% กระแส +'+top.trend7d+'%',
+    'มาแรงที่สุด: <b>'+riser.name+'</b> พุ่ง <b>+'+riser.trend7d+'%</b> ใน 7 วัน',
+    'แบรนด์ทุ่มแอดหนักสุด: <b>'+ad.brand+'</b> ('+ad.name+') ความเข้มแอด '+ad.adIntensity+'/100 — มีดีมานด์ให้เกาะ',
+    blue.length?('🔥 Blue Ocean '+blue.length+' ตัว (คอมดี คนทำยังน้อย): <b>'+blue.slice(0,3).map(p=>p.name).join(', ')+'</b>'):'วันนี้ยังไม่มีสินค้า Blue Ocean ชัดเจน'
+  ];
+  document.getElementById('rdigest').innerHTML=lines.map(l=>'<li>'+l+'</li>').join('');
+}
+function buildRadarKpi(){
+  if(!RADAR.length){document.getElementById('rkpi').innerHTML='';return;}
+  const hot=RADAR.filter(p=>p.opp>=80).length;
+  const beauty=RADAR.filter(p=>p.cat==='ความงาม');
+  const avgComm=beauty.length?Math.round(beauty.reduce((s,p)=>s+p.commission,0)/beauty.length):0;
+  const topAd=[...RADAR].sort((a,b)=>b.adIntensity-a.adIntensity)[0];
+  const blue=RADAR.filter(p=>p.blueOcean).length;
+  document.getElementById('rkpi').innerHTML=[
+    ['สินค้าโอกาสสูง','≥ 80 คะแนน',hot],
+    ['คอมเฉลี่ย หมวดบิวตี้','%',avgComm+'%'],
+    ['แบรนด์ยิงแอดหนักสุด',topAd.adIntensity+'/100',topAd.brand],
+    ['Blue Ocean วันนี้','คอมดี+คนทำน้อย',blue],
+  ].map(c=>'<div class="card"><div class="k">'+c[0]+'</div><div class="v">'+c[2]+'</div><div class="d">'+c[1]+'</div></div>').join('');
+}
+function buildRadarMovers(){
+  if(!RADAR.length){document.getElementById('rrisers').innerHTML='';document.getElementById('rcoolers').innerHTML='';return;}
+  const up=[...RADAR].sort((a,b)=>b.trend7d-a.trend7d).slice(0,4);
+  const down=[...RADAR].sort((a,b)=>a.trend7d-b.trend7d).slice(0,4);
+  const row=(p,cls,sign)=>'<div class="mrow"><span>'+p.name+' <span style="color:var(--muted)">· '+p.brand+'</span></span><span class="'+cls+'">'+sign+p.trend7d+'%</span></div>';
+  document.getElementById('rrisers').innerHTML=up.map(p=>row(p,'up','+')).join('');
+  document.getElementById('rcoolers').innerHTML=down.map(p=>row(p,'down','')).join('');
+}
+function renderRadar(){
+  const q=document.getElementById('rq').value.toLowerCase();
+  const cat=document.getElementById('rcat').value;
+  const sort=document.getElementById('rsort').value;
+  const blue=document.getElementById('rblue').checked;
+  let rows=RADAR.filter(p=>(!q||(p.name+p.brand).toLowerCase().includes(q))&&(!cat||p.cat===cat)&&(!blue||p.blueOcean));
+  rows.sort((a,b)=>b[sort]-a[sort]);
+  document.getElementById('rbody').innerHTML=rows.map(function(p){
+    const v=verdict(p);
+    const tcls=p.trend7d>=0?'up':'down';
+    return '<tr>'+
+      '<td><div style="font-weight:600">'+p.name+'</div><div style="color:var(--muted);font-size:12px">'+p.brand+' · ฿'+p.price+' · ⭐'+p.rating+' · ขาย '+p.sold.toLocaleString()+'/ด.</div></td>'+
+      '<td><span style="color:var(--muted)">'+p.cat+'</span></td>'+
+      '<td class="'+tcls+'" style="font-weight:700">'+(p.trend7d>=0?'+':'')+p.trend7d+'%</td>'+
+      '<td><b style="color:var(--good)">'+p.commission+'%</b></td>'+
+      '<td><span class="bar"><i style="width:'+p.adIntensity+'%;background:var(--warn)"></i></span> <span style="color:var(--muted);font-size:12px">'+p.adIntensity+'</span></td>'+
+      '<td><span class="bar"><i style="width:'+p.saturation+'%;background:'+(p.saturation>=70?'var(--bad)':'var(--brand2)')+'"></i></span> <span style="color:var(--muted);font-size:12px">'+p.saturation+'</span></td>'+
+      '<td><span class="score" style="color:'+oppColor(p.opp)+'">'+p.opp+'</span></td>'+
+      '<td><button class="btn sm" onclick=\'pickProduct('+JSON.stringify(p).replace(/'/g,"&#39;")+')\'>ติดคลิป</button> <span class="tag" style="background:'+v[1]+';color:'+v[2]+'">'+v[0]+'</span></td>'+
+    '</tr>';
+  }).join('')||'<tr><td colspan="8" class="empty">ไม่พบสินค้า</td></tr>';
+}
+
 function updateOverview(){
   document.getElementById('ovQueue').textContent=queue.filter(p=>p.status==='wait').length;
   document.getElementById('ovDone').textContent=queue.filter(p=>p.status==='done').length;
   document.getElementById('ovHot').textContent=PRODUCTS.filter(p=>p.score>=80).length;
 }
 
+async function loadRadar(){
+  try{
+    const r=await fetch('/api/radar');const d=await r.json();
+    RADAR=(d&&d.products)||[];
+    document.getElementById('rdate').textContent=new Date(d.generatedAt||Date.now()).toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(d.source&&d.source!=='sample'?'':' · ข้อมูลตัวอย่าง');
+    const sel=document.getElementById('rcat');
+    [...new Set(RADAR.map(p=>p.cat))].forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+    buildRadarDigest();buildRadarKpi();buildRadarMovers();renderRadar();
+  }catch(e){RADAR=[];}
+}
+
 async function init(){
   try{const r=await fetch('/api/products');PRODUCTS=await r.json();}catch(e){PRODUCTS=[];}
   [...new Set(PRODUCTS.map(p=>p.cat))].forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;document.getElementById('cat').appendChild(o);});
   renderScan();updateOverview();renderQueue();
+  await loadRadar();
   await loadMe();
   if(location.search.includes('connected=1')){toast('✅ เชื่อม TikTok สำเร็จ');history.replaceState({},'','/');}
+  const p=location.hash.replace('#','');if(titles[p])go(p);
 }
 init();
 </script>
